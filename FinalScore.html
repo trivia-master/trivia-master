@@ -1,0 +1,113 @@
+s<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Score</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: opacity 1s ease-out;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .score {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .restart-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #00158d;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .restart-button:hover {
+            background-color: #0473f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <h1>Quiz Completed!</h1>
+        <div class="score" id="scoreDisplay">Fetching Score...</div>
+        <button class="restart-button" onclick="restartQuiz()">Restart Quiz</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeQgBtWQVOfamEmMSUPYqpjDiVV7ynVZE",
+            authDomain: "quiz-ca110.firebaseapp.com",
+            databaseURL: "https://quiz-ca110-default-rtdb.firebaseio.com/",
+            projectId: "quiz-ca110",
+            storageBucket: "quiz-ca110.appspot.com",
+            messagingSenderId: "184289263241",
+            appId: "1:184289263241:web:c6b1d9490a4a9c404f9058"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const userName = localStorage.getItem("currentUser");
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        if (userName) {
+            const userRef = ref(db, `users/${userName}`);
+
+            get(userRef)
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        scoreDisplay.textContent = `Your Score: ${userData.score || 0}`;
+                    } else {
+                        scoreDisplay.textContent = "No score found.";
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching score:", error);
+                    scoreDisplay.textContent = "Error retrieving score.";
+                });
+        } else {
+            scoreDisplay.textContent = "User not found.";
+        }
+
+        // Restart quiz
+        function restartQuiz() {
+            localStorage.removeItem('currentUser');  // Clear user session
+            window.location.href = 'index.html';  // Redirect to start page
+        }
+    </script>
+</body>
+</html>

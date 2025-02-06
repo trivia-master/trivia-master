@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Master</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: opacity 1s ease-out;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .login-form input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .login-form button, .play-button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-form button {
+            background-color: #00158d;
+        }
+
+        .login-form button:hover {
+            background-color: #0473f1;
+        }
+
+        .play-button {
+            background-color: #28a745;
+        }
+
+        .play-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper" id="registerForm">
+        <div class="login-form">
+            <h1>GAME REGISTRATION</h1>
+            <form id="loginForm">
+                <input type="text" id="nameInput" placeholder="Enter Your Name" required>
+                <input type="text" id="sectionInput" placeholder="Enter Your Section" required>
+                <button type="button" id="submit">REGISTER</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="wrapper" id="welcomeForm" style="display: none;">
+        <div class="login-form">
+            <p class="welcome-message" id="welcomeMessage"></p>
+            <button class="play-button" id="playButton">Play Quiz</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getDatabase, ref, set, update } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeQgBtWQVOfamEmMSUPYqpjDiVV7ynVZE",
+            authDomain: "quiz-ca110.firebaseapp.com",
+            databaseURL: "https://quiz-ca110-default-rtdb.firebaseio.com/",
+            projectId: "quiz-ca110",
+            storageBucket: "quiz-ca110.appspot.com",
+            messagingSenderId: "184289263241",
+            appId: "1:184289263241:web:c6b1d9490a4a9c404f9058"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentUser = ""; // Store the current user's name
+
+        document.getElementById("submit").addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById("nameInput").value.trim();
+            const section = document.getElementById("sectionInput").value.trim();
+
+            if (name === "" || section === "") {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            currentUser = name; // Store the current username
+
+            set(ref(db, 'users/' + name), {
+                username: name,
+                section: section,
+                score: 0 // Initial score set to 0
+            })
+            .then(() => {
+                document.getElementById("registerForm").style.display = "none";
+                document.getElementById("welcomeMessage").innerText = `Welcome to the game, ${name}!`;
+                document.getElementById("welcomeForm").style.display = "block";
+            })
+            .catch((error) => {
+                console.error("Error writing to database:", error);
+            });
+        });
+
+        document.getElementById("playButton").addEventListener('click', function() {
+            localStorage.setItem("currentUser", currentUser); // Store user info locally
+            window.location.href = 'quiz.html'; // Redirect to quiz page
+        });
+
+        function updateScore(username, score) {
+            update(ref(db, 'users/' + username), {
+                score: score // Update the score in Firebase
+            })
+            .then(() => {
+                console.log("Score updated successfully for", username);
+            })
+            .catch((error) => {
+                console.error("Error updating score:", error);
+            });
+        }
+
+        // Check if we are on quiz.html and update score after the quiz
+        if (window.location.pathname.includes("quiz.html")) {
+            const username = localStorage.getItem("currentUser");
+            if (username) {
+                const finalScore = Math.floor(Math.random() * 11); // Replace with actual score calculation
+                updateScore(username, finalScore);
+            }
+        }
+    </script>
+</body>
+</html>

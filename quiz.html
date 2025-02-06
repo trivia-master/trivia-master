@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="quiz.css">
+</head>
+<body class="flex">
+
+    <div class="wrapper">
+        <div class="quiz-container">
+            <div class="quiz-head">
+                <div class="quiz-score flex">
+                    <span id="current-question">1</span>/<span id="total-question">10</span>
+                </div>
+            </div>
+            <div class="quiz-body">
+                <h2 class="quiz-question" id="question">Loading question...</h2>
+                <ul class="quiz-options" id="optionsList"></ul>
+                <div id="result"></div>
+                <button id="submitScoreButton" style="display: none;" onclick="submitScore()">Submit Score</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeQgBtWQVOfamEmMSUPYqpjDiVV7ynVZE",
+            authDomain: "quiz-ca110.firebaseapp.com",
+            databaseURL: "https://quiz-ca110-default-rtdb.firebaseio.com/",
+            projectId: "quiz-ca110",
+            storageBucket: "quiz-ca110.appspot.com",
+            messagingSenderId: "184289263241",
+            appId: "1:184289263241:web:c6b1d9490a4a9c404f9058"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let userScore = 0;
+        let currentQuestionIndex = 0;
+        const totalQuestions = 10;
+        let questionData = []; // Store fetched questions
+        let correctAnswer = "";
+
+        // Fetch questions from API
+        async function loadQuestions() {
+            const APIUrl = 'https://opentdb.com/api.php?amount=10&category=18';
+            try {
+                const response = await fetch(APIUrl);
+                const data = await response.json();
+                questionData = data.results;  // Store the questions
+                loadQuestion();  // Load the first question
+            } catch (error) {
+                console.error('Failed to fetch questions:', error);
+            }
+        }
+
+        // Load a question
+        function loadQuestion() {
+            if (currentQuestionIndex >= questionData.length) {
+                submitScore(); // Auto-submit after last question
+                return;
+            }
+
+            const questionObj = questionData[currentQuestionIndex];
+            correctAnswer = questionObj.correct_answer;
+            const incorrectAnswers = questionObj.incorrect_answers;
+            const optionsList = [...incorrectAnswers];
+
+            // Randomly insert the correct answer into the options
+            optionsList.splice(Math.floor(Math.random() * (incorrectAnswers.length + 1)), 0, correctAnswer);
+
+            document.getElementById("question").innerHTML = `${questionObj.question} <br> <span class="category">${questionObj.category}</span>`;
+            document.getElementById("current-question").innerText = currentQuestionIndex + 1;
+            document.getElementById("optionsList").innerHTML = optionsList.map(option => `<li>${option}</li>`).join('');
+
+            enableOptionSelection();
+        }
+
+        // Enable selecting an answer
+        function enableOptionSelection() {
+            document.querySelectorAll('.quiz-options li').forEach(option => {
+                option.addEventListener('click', () => {
+                    if (document.querySelector('.selected')) {
+                        document.querySelector('.selected').classList.remove('selected');
+                    }
+                    option.classList.add('selected');
+                    handleAnswer(option.textContent);
+                });
+            });
+        }
+
+        // Handle the answer
+        function handleAnswer(selectedAnswer) {
+            if (selectedAnswer === correctAnswer) {
+                userScore++;
+            }
+
+            currentQuestionIndex++;
+
+            setTimeout(() => {
+                if (currentQuestionIndex < totalQuestions) {
+                    loadQuestion();
+                } else {
+                    submitScore();
+                }
+            }, 2000); // Wait 2 seconds before next question
+        }
+
+        // Submit and store score in Firebase
+        function submitScore() {
+            const userName = localStorage.getItem("currentUser");
+
+            if (!userName) {
+                alert("User not registered.");
+                window.location.href = 'index.html'; // Redirect if no user
+                return;
+            }
+
+            const finalScore = Math.min(Math.max(userScore, 0), totalQuestions);
+
+            update(ref(db, 'users/' + userName), { score: finalScore })
+                .then(() => {
+                    alert(`Score submitted! You scored ${finalScore}/${totalQuestions}.`);
+                    window.location.href = 'index.html'; // Redirect home
+                })
+                .catch(error => {
+                    console.error("Error submitting score:", error);
+                    window.location.href = 'index.html'; // Redirect even on error
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadQuestions);
+    </script>
+
+</body>
+</html>
